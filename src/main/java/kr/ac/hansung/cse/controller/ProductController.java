@@ -5,6 +5,7 @@ import kr.ac.hansung.cse.exception.ProductNotFoundException;
 import kr.ac.hansung.cse.model.Product;
 import kr.ac.hansung.cse.model.ProductForm;
 import kr.ac.hansung.cse.service.ProductService;
+import kr.ac.hansung.cse.service.CategoryService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -37,20 +38,38 @@ import java.util.List;
 public class ProductController {
 
     private final ProductService productService;
-
-    public ProductController(ProductService productService) {
+    private final CategoryService categoryService;
+    public ProductController(ProductService productService, CategoryService categoryService) {
         this.productService = productService;
+        this.categoryService = categoryService;
     }
-
 
     // ─────────────────────────────────────────────────────────────────
     // GET /products - 상품 목록 조회
     // ─────────────────────────────────────────────────────────────────
-
+    // 기존 listProducts() 메서드에 @RequestParam 두 개를 추가
     @GetMapping
-    public String listProducts(Model model) {
-        List<Product> products = productService.getAllProducts();
+    public String listProducts(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long categoryId,
+            Model model) {
+
+        List<Product> products;
+
+        if (keyword != null && !keyword.isBlank()) {
+            products = productService.searchByName(keyword);
+        } else if (categoryId != null) {
+            products = productService.searchByCategory(categoryId);
+        } else {
+            products = productService.getAllProducts();
+        }
+
+        // 카테고리 드롭다운 목록 + 현재 검색 조건 유지
         model.addAttribute("products", products);
+        model.addAttribute("categories", categoryService.getAllCategories());
+        model.addAttribute("keyword", keyword);
+        model.addAttribute("categoryId", categoryId);
+
         return "productList";
     }
 
